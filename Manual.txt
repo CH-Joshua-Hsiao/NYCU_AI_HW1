@@ -1,0 +1,39 @@
+You want to create a custom dataset for training an LLM router — a classifier that decides whether an incoming user query should be handled by a small LLM or a large LLM.
+To build this dataset, you plan to:
+1. Collect raw queries from free online sources
+Examples include:
+- StackOverflow
+- Reddit
+- Google Natural Questions
+- HotpotQA
+- Spider (NL questions only)
+These sources provide unlabeled queries, which is allowed by your assignment.
+2. Apply your own routing labels
+You will manually label each query as either:
+- small‑LLM → simple, short, low‑reasoning questions
+- large‑LLM → complex, multi‑step, domain‑specific, or reasoning‑heavy questions
+This makes the dataset original, satisfying the requirement that you must create your own dataset.
+3. Train a supervised classifier
+You will experiment with at least two models, such as:
+- Logistic Regression (TF‑IDF)
+- BERT‑based classifier
+This meets the assignment’s requirement for multiple supervised learning methods.
+4. Evaluate routing performance
+You will measure:
+- Accuracy
+- Precision / Recall / F1
+- Possibly AUROC
+Your goal is to achieve F1 ≥ 60, which is realistic because simple vs complex queries are linguistically separable.
+5. Perform dataset‑related experiments
+Examples:
+- Effect of dataset size
+- Effect of class imbalance
+- PCA vs no PCA
+- Data augmentation (paraphrasing)
+These match the assignment’s “research questions” requirement.
+
+help write:
+- your dataset documentation section,
+- your research question,
+- your motivation paragraph,
+- or generate 300–500 queries for your dataset.
