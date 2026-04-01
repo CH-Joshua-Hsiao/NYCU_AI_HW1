@@ -20,7 +20,7 @@ warnings.simplefilter(action='ignore')
 
 def main():
     print("Loading dataset...")
-    df = pd.read_csv('labeled_data.csv')
+    df = pd.read_csv('llm_relabeled_data.csv')
     df = df.dropna(subset=['query', 'label'])
     
     # Map label to 0/1, 'small' -> 0, 'large' -> 1
@@ -34,7 +34,7 @@ def main():
     # Initialize TF-IDF + LR
     tfidf_lr = Pipeline([
         ('tfidf', TfidfVectorizer(stop_words='english', max_features=1000)),
-        ('clf', LogisticRegression(random_state=42, max_iter=1000))
+        ('clf', LogisticRegression(random_state=42, max_iter=1000, class_weight='balanced'))
     ])
 
     # BERT
@@ -42,7 +42,19 @@ def main():
     bert_model = SentenceTransformer('all-MiniLM-L6-v2')
     print("Encoding text. This may take a minute...")
     X_bert = bert_model.encode(X, show_progress_bar=False)
-    clf_bert = LogisticRegression(random_state=42, max_iter=1000)
+    clf_bert = LogisticRegression(random_state=42, max_iter=1000, class_weight='balanced')
+    
+    # PCA Pipelines
+    bert_pca_lr = Pipeline([
+        ('pca', PCA(n_components=50, random_state=42)),
+        ('clf', LogisticRegression(random_state=42, max_iter=1000, class_weight='balanced'))
+    ])
+    
+    tfidf_pca_lr = Pipeline([
+        ('tfidf', TfidfVectorizer(stop_words='english', max_features=1000)),
+        ('pca', TruncatedSVD(n_components=50, random_state=42)),
+        ('clf', LogisticRegression(random_state=42, max_iter=1000, class_weight='balanced'))
+    ])
 
     scoring = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
 
@@ -63,123 +75,112 @@ def main():
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
     sns.heatmap(cm_tfidf, annot=True, fmt='d', cmap='Blues', ax=axes[0],
                 xticklabels=['Small-LLM (0)', 'Large-LLM (1)'], yticklabels=['Small-LLM (0)', 'Large-LLM (1)'])
-    axes[0].set_title('TF-IDF + Logistic Regression')
+    axes[0].set_title('TF-IDF + LR (Balanced)')
     
     sns.heatmap(cm_bert, annot=True, fmt='d', cmap='Greens', ax=axes[1],
                 xticklabels=['Small-LLM (0)', 'Large-LLM (1)'], yticklabels=['Small-LLM (0)', 'Large-LLM (1)'])
-    axes[1].set_title('BERT + Logistic Regression')
+    axes[1].set_title('BERT + LR (Balanced)')
     plt.tight_layout()
     plt.savefig('confusion_matrices.png', dpi=300)
     print("Saved confusion_matrices.png")
 
     # --- Experiment 2 ---
-    print("\n=== Experiment 2: Dataset Size (Learning Curve) ===")
-    train_sizes, train_scores, test_scores = learning_curve(
-        clf_bert, X_bert, y, cv=5, n_jobs=-1, 
-        train_sizes=np.linspace(0.2, 1.0, 5), scoring='f1'
-    )
+    print("\n=== Experiment 2: Dataset Size & PCA (10-point Learning Curves) ===")
     
-    plt.figure(figsize=(8, 6))
-    test_scores_mean = np.mean(test_scores, axis=1)
-    test_scores_std = np.std(test_scores, axis=1)
-
-    plt.plot(train_sizes, test_scores_mean, 'o-', color="g", label="BERT Cross-validation F1 score")
-    plt.fill_between(train_sizes, test_scores_mean - test_scores_std,
-                     test_scores_mean + test_scores_std, alpha=0.1, color="g")
+    plt.figure(figsize=(10, 7))
+    train_sizes_scale = np.linspace(0.1, 1.0, 10)
     
-    train_sizes_tf, train_scores_tf, test_scores_tf = learning_curve(
-        tfidf_lr, X, y, cv=5, n_jobs=-1, 
-        train_sizes=np.linspace(0.2, 1.0, 5), scoring='f1'
-    )
-    test_scores_mean_tf = np.mean(test_scores_tf, axis=1)
-    test_scores_std_tf = np.std(test_scores_tf, axis=1)
+    models_to_test = {
+        'BERT': clf_bert,
+        'TF-IDF': tfidf_lr,
+        'BERT + PCA': bert_pca_lr,
+        'TF-IDF + PCA': tfidf_pca_lr
+    }
     
-    plt.plot(train_sizes_tf, test_scores_mean_tf, 'o-', color="b", label="TF-IDF F1 score")
-    plt.fill_between(train_sizes_tf, test_scores_mean_tf - test_scores_std_tf,
-                     test_scores_mean_tf + test_scores_std_tf, alpha=0.1, color="b")
-
+    colors = {'BERT': 'g', 'TF-IDF': 'b', 'BERT + PCA': 'darkgreen', 'TF-IDF + PCA': 'navy'}
+    linestyles = {'BERT': '-', 'TF-IDF': '-', 'BERT + PCA': '--', 'TF-IDF + PCA': '--'}
+    
+    for name, model in models_to_test.items():
+        # X mapping depending on if it's BERT raw features or Text
+        features = X_bert if 'BERT' in name else X
+        t_sizes, t_scores, te_scores = learning_curve(
+            model, features, y, cv=5, n_jobs=-1, 
+            train_sizes=train_sizes_scale, scoring='f1'
+        )
+        te_mean = np.mean(te_scores, axis=1)
+        
+        plt.plot(t_sizes, te_mean, marker='o', color=colors[name], linestyle=linestyles[name], label=f"{name} F1-Score")
+        
     plt.xlabel("Training examples")
-    plt.ylabel("F1 Score")
-    plt.legend(loc="best")
-    plt.title("Learning Curves (BERT vs TF-IDF)")
+    plt.ylabel("Cross-Validated F1 Score")
+    plt.legend(loc="lower right")
+    plt.title("Learning Curves (Granular Sampling w/ PCA Comparisons)")
     plt.grid()
+    plt.tight_layout()
     plt.savefig('learning_curve.png', dpi=300)
     print("Saved learning_curve.png")
 
     # --- Experiment 3 ---
-    print("\n=== Experiment 3: Class Imbalance & Resampling ===")
+    print("\n=== Experiment 3: Class Imbalance Learning Curves ===")
     if SMOTE is None:
         print("Please run `pip install imbalanced-learn` for SMOTE. Terminating experiment 3.")
     else:
-        # Imbalance ratio: 200 small (0), 50 large (1).
+        from imblearn.pipeline import Pipeline as ImbPipeline
         idx_small = np.where(y == 0)[0]
         idx_large = np.where(y == 1)[0]
         np.random.seed(42)
         idx_large_sub = np.random.choice(idx_large, size=50, replace=False)
         idx_imbalanced = np.concatenate((idx_small, idx_large_sub))
         
-        X_imb = X[idx_imbalanced]
+        X_imb = X_bert[idx_imbalanced]
         y_imb = y[idx_imbalanced]
-        X_bert_imb = X_bert[idx_imbalanced]
         
-        X_tr, X_te, y_tr, y_te = train_test_split(X_bert_imb, y_imb, test_size=0.3, random_state=42, stratify=y_imb)
+        pipeline_unbal = Pipeline([('clf', LogisticRegression(random_state=42, max_iter=1000))])
+        pipeline_cw = Pipeline([('clf', LogisticRegression(random_state=42, max_iter=1000, class_weight='balanced'))])
+        pipeline_smote = ImbPipeline([
+            ('smote', SMOTE(random_state=42, k_neighbors=3)),
+            ('clf', LogisticRegression(random_state=42, max_iter=1000))
+        ])
         
-        # 1. Unbalanced Model
-        clf_unbal = LogisticRegression(random_state=42, max_iter=1000)
-        clf_unbal.fit(X_tr, y_tr)
-        y_p_unbal = clf_unbal.predict(X_te)
-        f1_unbal = f1_score(y_te, y_p_unbal)
-        recall_unbal = recall_score(y_te, y_p_unbal)
+        imb_models = {
+            'No Resampling': pipeline_unbal,
+            'Class Weights': pipeline_cw,
+            'SMOTE': pipeline_smote
+        }
         
-        # 2. Balanced mapped
-        clf_cw = LogisticRegression(random_state=42, max_iter=1000, class_weight='balanced')
-        clf_cw.fit(X_tr, y_tr)
-        y_p_cw = clf_cw.predict(X_te)
-        f1_cw = f1_score(y_te, y_p_cw)
-        recall_cw = recall_score(y_te, y_p_cw)
+        plt.figure(figsize=(9, 6))
         
-        # 3. SMOTE
-        smote = SMOTE(random_state=42)
-        X_res, y_res = smote.fit_resample(X_tr, y_tr)
-        clf_smote = LogisticRegression(random_state=42, max_iter=1000)
-        clf_smote.fit(X_res, y_res)
-        y_p_smote = clf_smote.predict(X_te)
-        f1_smote = f1_score(y_te, y_p_smote)
-        recall_smote = recall_score(y_te, y_p_smote)
+        # We start at 30% because SMOTE requires at least k_neighbors samples in minority class
+        train_sizes_scale = np.linspace(0.4, 1.0, 7)
+        colors = {'No Resampling': 'red', 'Class Weights': 'blue', 'SMOTE': 'green'}
         
-        labels_bar = ['No Resampling', 'Class Weights', 'SMOTE']
-        f1s = [f1_unbal, f1_cw, f1_smote]
-        recalls = [recall_unbal, recall_cw, recall_smote]
-
-        x_pos = np.arange(len(labels_bar))
-        width = 0.35
-        fig, ax = plt.subplots(figsize=(8,6))
-        
-        ax.bar(x_pos - width/2, f1s, width, label='F1 (Class 1)')
-        ax.bar(x_pos + width/2, recalls, width, label='Recall (Class 1)')
-        ax.set_xticks(x_pos)
-        ax.set_xticklabels(labels_bar)
-        ax.set_ylabel('Score')
-        ax.set_title('Performance on Imbalanced Dataset (20% Class 1)')
-        ax.legend()
+        for name, model in imb_models.items():
+            t_sizes, t_scores, te_scores = learning_curve(
+                model, X_imb, y_imb, cv=5, n_jobs=-1, 
+                train_sizes=train_sizes_scale, scoring='f1'
+            )
+            te_mean = np.mean(te_scores, axis=1)
+            te_std = np.std(te_scores, axis=1)
+            
+            plt.plot(t_sizes, te_mean, marker='o', color=colors[name], label=name)
+            plt.fill_between(t_sizes, te_mean - te_std, te_mean + te_std, alpha=0.1, color=colors[name])
+            
+        plt.xlabel("Training Examples (Imbalanced Split)")
+        plt.ylabel("Cross-Validated F1 Score")
+        plt.title('Imbalanced Dataset Performance over Sample Size')
+        plt.legend(loc="best")
+        plt.grid()
         plt.tight_layout()
         plt.savefig('imbalance_results.png', dpi=300)
         print("Saved imbalance_results.png")
 
     # --- Experiment 4 ---
-    print("\n=== Experiment 4: PCA Dimensionality Reduction ===")
-    pca = PCA(n_components=50, random_state=42)
-    X_bert_pca = pca.fit_transform(X_bert)
-    cv_pca = cross_validate(clf_bert, X_bert_pca, y, cv=5, scoring=scoring)
+    print("\n=== Experiment 4: PCA Dimensionality Reduction Strict Comparison ===")
+    cv_pca = cross_validate(bert_pca_lr, X_bert, y, cv=5, scoring=scoring)
     
     f1_nopca = np.mean(cv_bert['test_f1'])
     f1_pca = np.mean(cv_pca['test_f1'])
     
-    tfidf_pca_lr = Pipeline([
-        ('tfidf', TfidfVectorizer(stop_words='english', max_features=1000)),
-        ('pca', TruncatedSVD(n_components=50, random_state=42)),
-        ('clf', LogisticRegression(random_state=42, max_iter=1000))
-    ])
     cv_tfidf_pca = cross_validate(tfidf_pca_lr, X, y, cv=5, scoring=scoring)
     
     f1_tf_nopca = np.mean(cv_tfidf['test_f1'])
