@@ -1,0 +1,58 @@
+\section*{Experiment Quantitative Results}\n\n%% Experiment 1 Base Metrics
+\begin{table}
+\caption{Baseline Classification Metrics}
+\label{tab:baseline}
+\begin{tabular}{lrrrrr}
+\hline
+Model & Accuracy & Precision & Recall & F1-Score & ROC AUC \\
+\hline
+TF-IDF + LR & 0.6700 & 0.7749 & 0.7876 & 0.7811 & 0.6294 \\
+BERT + LR & 0.6675 & 0.8196 & 0.7109 & 0.7607 & 0.6696 \\
+\hline
+\end{tabular}
+\end{table}
+
+
+%% Experiment 2 Learning Curves
+\begin{table}
+\caption{F1-Score over Dataset Size}
+\label{tab:learning_curve}
+\begin{tabular}{rrrrr}
+\hline
+Train_Size_Pct & BERT_F1 & TF-IDF_F1 & BERT + PCA_F1 & TF-IDF + PCA_F1 \\
+\hline
+0.1000 & 0.8205 & 0.8151 & 0.8098 & 0.8223 \\
+0.2000 & 0.7802 & 0.8189 & 0.7583 & 0.7942 \\
+0.3000 & 0.7902 & 0.8250 & 0.7635 & 0.7825 \\
+0.4000 & 0.7631 & 0.8066 & 0.7340 & 0.7540 \\
+0.5000 & 0.7608 & 0.7913 & 0.7002 & 0.7447 \\
+0.6000 & 0.7573 & 0.7875 & 0.7097 & 0.7384 \\
+0.7000 & 0.7634 & 0.7839 & 0.7072 & 0.7110 \\
+0.8000 & 0.7673 & 0.7774 & 0.7228 & 0.6989 \\
+0.9000 & 0.7611 & 0.7898 & 0.7216 & 0.6780 \\
+1.0000 & 0.7607 & 0.7811 & 0.7229 & 0.6592 \\
+\hline
+\end{tabular}
+\end{table}
+
+
+%% Experiment 3 Imbalance Techniques
+\begin{table}
+\caption{F1-Score of Imbalanced Techniques}
+\label{tab:imbalance}
+\begin{tabular}{rrrr}
+\hline
+Train_Size_Pct & No Resampling_F1 & Class Weights_F1 & SMOTE_F1 \\
+\hline
+0.4000 & NaN & NaN & NaN \\
+0.5000 & NaN & NaN & NaN \\
+0.6000 & NaN & NaN & NaN \\
+0.7000 & NaN & NaN & NaN \\
+0.8000 & NaN & NaN & NaN \\
+0.9000 & 0.0000 & 0.3129 & 0.3117 \\
+1.0000 & 0.0000 & 0.3716 & 0.3311 \\
+\hline
+\end{tabular}
+\end{table}
+
+

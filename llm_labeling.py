@@ -69,8 +69,8 @@ def label_query_with_llm(query, retries=3):
     return 'unknown' # Fallback if API fails repeatedly
 
 def main():
-    input_file = 'labeled_data.csv' # Reading your current dataset
-    output_file = 'llm_relabeled_data.csv'
+    input_file = 'unlabeled_dataset_large.csv' # Reading your current dataset
+    output_file = 'llm_relabeled_data_large.csv'
     
     print(f"Loading queries from {input_file}...")
     df = pd.read_csv(input_file)
@@ -82,7 +82,7 @@ def main():
     
     for idx, row in df.iterrows():
         query = row['query']
-        safe_query = query[:60].encode('ascii', 'ignore').decode('ascii')
+        safe_query = query.encode('ascii', 'ignore').decode('ascii')
         print(f"[{idx+1}/{len(df)}] Analyzing: {safe_query}...")
         
         # 1. Ask the LLM to classify it

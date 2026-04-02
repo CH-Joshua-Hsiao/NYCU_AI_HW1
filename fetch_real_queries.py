@@ -1,58 +1,77 @@
 import csv
 import random
+import os
 from datasets import load_dataset
 
-def fetch_real_data(num_samples=400):
-    print("Loading SQuAD dataset (Simple Queres)...")
-    # SQuAD questions are typically short and factual
+def fetch_real_data(num_new_samples=400):
+    existing_file = 'unlabeled_dataset.csv'
+    output_file = 'unlabeled_dataset_large.csv'
+    
+    existing_queries = set()
+    combined_data = []
+    
+    # 1. Load existing data to avoid duplicates and preserve labels
+    if os.path.exists(existing_file):
+        print(f"Loading existing dataset from {existing_file}...")
+        with open(existing_file, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                existing_queries.add(row['query'])
+                combined_data.append(row)
+        print(f"Loaded {len(combined_data)} existing queries.")
+    else:
+        print(f"File {existing_file} not found. Starting fresh.")
+        
+    # 2. Fetch new queries
+    print("\nLoading SQuAD dataset (Simple Queries)...")
     squad = load_dataset("squad", split="train")
     
-    # We use a set to ensure unique queries are recorded
-    simple_queries = set()
+    new_simple_queries = set()
     squad_len = len(squad)
     
     print("Sampling unique SQuAD questions...")
-    while len(simple_queries) < (num_samples // 2):
+    target_simple = num_new_samples // 2
+    while len(new_simple_queries) < target_simple:
         idx = random.randint(0, squad_len - 1)
         q = squad[idx]['question']
-        simple_queries.add(q)
-        
-    print("Loading HotpotQA dataset (Complex Queries)...")
-    # HotpotQA questions require multi-hop reasoning over multiple documents
+        # Ensure it's not in the existing dataset AND not already picked
+        if q not in existing_queries and q not in new_simple_queries:
+            new_simple_queries.add(q)
+            
+    print("\nLoading HotpotQA dataset (Complex Queries)...")
     hotpot = load_dataset("hotpot_qa", "distractor", split="train")
     
-    complex_queries = set()
+    new_complex_queries = set()
     hotpot_len = len(hotpot)
     
     print("Sampling unique HotpotQA questions...")
-    while len(complex_queries) < (num_samples // 2):
+    target_complex = num_new_samples // 2
+    while len(new_complex_queries) < target_complex:
         idx = random.randint(0, hotpot_len - 1)
         q = hotpot[idx]['question']
-        complex_queries.add(q)
+        # Ensure it's not in the existing dataset AND not already picked
+        if q not in existing_queries and q not in new_complex_queries:
+            new_complex_queries.add(q)
+            
+    # Combine new queries
+    new_data = []
+    for q in new_simple_queries:
+        new_data.append({"query": q, "label": "", "label_id": ""})
+    for q in new_complex_queries:
+        new_data.append({"query": q, "label": "", "label_id": ""})
         
-    # Combine the datasets
-    data = []
+    random.shuffle(new_data)
+    combined_data.extend(new_data)
     
-    for q in simple_queries:
-        # Leaving labels empty as requested by the user
-        data.append({"query": q, "label": "", "label_id": ""})
-        
-    for q in complex_queries:
-        # Leaving labels empty as requested by the user
-        data.append({"query": q, "label": "", "label_id": ""})
-        
-    # Shuffle so the labels aren't strictly divided top/bottom
-    random.shuffle(data)
-    
-    # Write to an unlabeled CSV for the user to manually grade
-    print("Writing to unlabeled_dataset.csv...")
-    with open('unlabeled_dataset.csv', 'w', newline='', encoding='utf-8') as f:
+    print(f"\nWriting to {output_file}...")
+    with open(output_file, 'w', newline='', encoding='utf-8') as f:
+        # We assume the standard fields
         writer = csv.DictWriter(f, fieldnames=['query', 'label', 'label_id'])
         writer.writeheader()
-        writer.writerows(data)
+        writer.writerows(combined_data)
         
-    print(f"Successfully scraped {len(data)} authentic, unique queries from HuggingFace.")
-    print("The file 'unlabeled_dataset.csv' is ready for your manual labeling!")
+    print(f"Successfully concatenated datasets.")
+    print(f"Total rows in {output_file}: {len(combined_data)} (of which {len(new_data)} are new & unlabeled).")
 
 if __name__ == '__main__':
     fetch_real_data()

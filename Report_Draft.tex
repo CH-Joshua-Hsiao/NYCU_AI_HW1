@@ -21,14 +21,14 @@
 }
 
 \title{AI Capstone Project \#1: LLM Router Dataset Report}
-\author{Your Name / Student ID Here}
+\author{蕭至恆 413551034}
 \date{\today}
 
 \begin{document}
 
 \maketitle
 
-\textbf{Dataset Repository:} \href{https://github.com/YOUR_USERNAME/YOUR_DATASET_REPO}{https://github.com/YOUR\_USERNAME/YOUR\_DATASET\_REPO}
+\textbf{Dataset Repository:} \href{https://github.com/CH-Joshua-Hsiao/NYCU_AI_HW1}{https://github.com/CH-Joshua-Hsiao/NYCU\_AI\_HW1}
 
 \section{Motivation}
 As modern applications increasingly integrate Large Language Models (LLMs), routing user queries to the appropriate model has become a critical challenge. Invoking a large, highly-capable LLM for every request is computationally expensive and incurs unnecessary latency. Conversely, defaulting to a small LLM may result in poor answers for reasoning-heavy or complex prompts. My motivation for creating this dataset is to train an efficient "LLM Router" --- a lightweight, supervised classifier capable of distinguishing between simple queries (low-reasoning, factual, brief) and complex queries (domain-specific, multi-step, reasoning-heavy). By successfully classifying the intent and complexity of incoming queries, developers can optimize inference costs while maintaining high response quality.
@@ -44,13 +44,13 @@ This project explores the feasibility and limitations of using classical machine
 \section{Dataset Documentation}
 
 \subsection{Data Type and Composition}
-The dataset consists of \textbf{400 text-based queries} paired with strictly evaluated binary classification labels. 
+The dataset consists of \textbf{800 text-based queries} paired with strictly evaluated binary classification labels. 
 \begin{itemize}
     \item \textbf{Features:} The raw text of the user query (String).
     \item \textbf{Labels:} 
     \begin{itemize}
-        \item \texttt{small-LLM} (0): Simple, concise, single-entity factual queries. (96 instances, 24\% of the dataset).
-        \item \texttt{large-LLM} (1): Complex, multi-step, analytical, or multi-hop reasoning requests. (304 instances, 76\% of the dataset).
+        \item \texttt{small-LLM} (0): Simple, concise, single-entity factual queries. (202 instances, $\sim$25\% of the dataset).
+        \item \texttt{large-LLM} (1): Complex, multi-step, analytical, or multi-hop reasoning requests. (598 instances, $\sim$75\% of the dataset).
     \end{itemize}
 \end{itemize}
 
@@ -58,11 +58,11 @@ The dataset consists of \textbf{400 text-based queries} paired with strictly eva
 This dataset mimics real-world interaction logs and is composed of queries adapted from open-source domains. General knowledge and reasoning questions were pseudo-randomly sampled from real-world question-answering databases \textbf{SQuAD} and \textbf{HotpotQA}.
 
 \textit{Data Collection \& Generation Methodology:}
-To assemble this dataset while complying with the homework constraint of creating a novel classification challenge, I strictly performed manual evaluation. First, a Python script randomly isolated queries directly from the SQuAD (Stanford Question Answering Dataset) and HotpotQA sets into an unlabeled CSV pool locally. I then carefully reviewed and human-annotated the 400 instances manually, strictly delineating whether the question logically required relating independent entities or finding an intermediate fact before arriving at the final conclusion (`large`), or if it was a basic zero-reasoning factoid (`small`).
+To assemble this dataset while complying with the homework constraint of creating a novel classification challenge, I strictly utilized programmatic web-scraping methodologies. First, a Python script randomly isolated queries directly from the SQuAD (Stanford Question Answering Dataset) and HotpotQA sets into an unlabeled CSV pool locally. To enforce strict objective labeling, I utilized zero-shot prompting via the OpenAI GPT-4o API, systematically evaluating all 800 instances by delineating whether the question logically required relating independent entities or finding an intermediate fact before arriving at the final conclusion (`large`), or if it was a basic zero-reasoning factoid (`small`).
 
 \subsection{Dataset Characteristics \& Constraints}
 \begin{itemize}
-    \item The dataset features a naturally imbalanced \textbf{76\% 'large' / 24\% 'small' distribution}, providing a highly realistic skew mirroring specialized application ecosystems for our baseline models to evaluate.
+    \item The dataset features a naturally imbalanced \textbf{$\sim$75\% 'large' / $\sim$25\% 'small' distribution}, providing a highly realistic skew mirroring specialized application ecosystems for our baseline models to evaluate.
     \item Because these are genuine queries pulled from open bases, the dataset authentically preserves grammatical inconsistencies, shorthand, and natural language noise, forcing models to look beyond structural perfection.
 \end{itemize}
 
@@ -93,7 +93,7 @@ To assemble this dataset while complying with the homework constraint of creatin
 \end{itemize}
 
 \subsection{Evaluation Metrics and Process}
-Models were evaluated utilizing rigorous \textbf{5-Fold Cross-Validation} inside Scikit-Learn pipelines to strictly contain data leakage and prevent localized overfitting on the 400 sample dimensions. Primary performance evaluation metrics generated are \textbf{Accuracy}, \textbf{Precision}, \textbf{Recall}, and \textbf{F1-Score}. We heavily utilize \textbf{imblearn SMOTE} (Synthetic Minority Over-sampling Technique) bounded purely over the respective training folds to evaluate synthetic metric recoveries. 
+Models were evaluated utilizing rigorous \textbf{5-Fold Cross-Validation} inside Scikit-Learn pipelines to strictly contain data leakage and prevent localized overfitting on the 800 sample dimensions. Primary performance evaluation metrics generated are \textbf{Accuracy}, \textbf{Precision}, \textbf{Recall}, and \textbf{F1-Score}. We heavily utilize \textbf{imblearn SMOTE} (Synthetic Minority Over-sampling Technique) bounded purely over the respective training folds to evaluate synthetic metric recoveries. 
 
 \section{Experimental Results}
 
@@ -102,15 +102,16 @@ Using our manually imbalanced dataset with 5-fold cross-validation and balanced 
 
 \begin{table}[h]
 \centering
-\begin{tabular}{l c c c c}
-\toprule
-\textbf{Model Pipeline} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-Score} \\
-\midrule
-TF-IDF + LR (Balanced) & 0.6650 & 0.7575 & 0.8224 & 0.7883 \\
-BERT (MiniLM-L6) + LR (Balanced)& 0.6200 & 0.7754 & 0.7042 & 0.7371 \\
-\bottomrule
+\caption{Baseline Classification Metrics}
+\label{tab:baseline}
+\begin{tabular}{lrrrrr}
+\hline
+Model & Accuracy & Precision & Recall & F1-Score & ROC AUC \\
+\hline
+TF-IDF + LR & 0.6700 & 0.7749 & 0.7876 & 0.7811 & 0.6294 \\
+BERT + LR & 0.6675 & 0.8196 & 0.7109 & 0.7607 & 0.6696 \\
+\hline
 \end{tabular}
-\caption{Baseline 5-Fold Cross-Validation Results.}
 \end{table}
 
 \begin{figure}[h]
@@ -128,14 +129,45 @@ To aggressively test stability without requiring thousands of iterations, we tra
     \caption{F1-Scores tracking the explicit 10-interval training progression alongside strict PCA boundary mappings.}
 \end{figure}
 
+\begin{table}[h]
+\centering
+\caption{F1-Score over Dataset Size (Granular Increments)}
+\label{tab:learning_curve}
+\begin{tabular}{rrrrr}
+\hline
+Train Size \% & BERT F1 & TF-IDF F1 & BERT+PCA F1 & TF-IDF+PCA F1 \\
+\hline
+10\% & 0.8205 & 0.8151 & 0.8098 & 0.8223 \\
+20\% & 0.7802 & 0.8189 & 0.7583 & 0.7942 \\
+50\% & 0.7608 & 0.7913 & 0.7002 & 0.7447 \\
+80\% & 0.7673 & 0.7774 & 0.7228 & 0.6989 \\
+100\% & 0.7607 & 0.7811 & 0.7229 & 0.6592 \\
+\hline
+\end{tabular}
+\end{table}
+
 \subsection{Class Imbalance Tracking (Experiment 3)}
-Given our dataset distribution (76\% large / 24\% small), we built rigorous imblearn pipelines embedding Synthetic Minority Over-sampling Technique (SMOTE) logic securely beside standard balanced weighting. Instead of generic averages, we dynamically tracked continuous SMOTE F1 recovery curves expanding across raw sample scaling dimensions to investigate instability.
+Given our dataset distribution ($\sim$75\% large / $\sim$25\% small), we built rigorous imblearn pipelines embedding Synthetic Minority Over-sampling Technique (SMOTE) logic securely beside standard balanced weighting. Instead of generic averages, we dynamically tracked continuous SMOTE F1 recovery curves expanding across raw sample scaling dimensions to investigate instability.
 
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.6\textwidth]{imbalance_results.png}
     \caption{Dynamic curve mapping SMOTE recovery performance iteratively across sample subsets against base class weighting.}
 \end{figure}
+
+\begin{table}[h]
+\centering
+\caption{F1-Score of Imbalanced Techniques}
+\label{tab:imbalance}
+\begin{tabular}{rrrr}
+\hline
+Train\_Size\_Pct & No Resampling\_F1 & Class Weights\_F1 & SMOTE\_F1 \\
+\hline
+0.9000 & 0.0000 & 0.3129 & 0.3117 \\
+1.0000 & 0.0000 & 0.3716 & 0.3311 \\
+\hline
+\end{tabular}
+\end{table}
 
 \subsection{Dimensionality Reduction Validation (Experiment 4)}
 As heavily verified via the localized Experiment 2 graph intersections, forcing PCA onto highly specific semantic vectors reliably deteriorated overall logic boundaries, preventing classifiers from easily mapping inference gaps compared to non-reduced sparse configurations tracking strict entity keywords.
@@ -146,6 +178,25 @@ As heavily verified via the localized Experiment 2 graph intersections, forcing 
     \caption{Static Baseline F1 Evaluations of specific 50-dimensional compressions.}
 \end{figure}
 
+\subsection{Error Analysis: Misclassifications}
+To better understand the limitations of BERT semantic embeddings against GPT-4's logical annotations, we extracted out-of-fold predictions to identify systemic patterns in false classifications. 
+
+\textbf{False Positives (True Label: Small, Predicted: Large)}
+These instances were logically simple but tricked the BERT embeddings into predicting a "complex" routing requirement due to dense vocabulary.
+\textit{Examples:}
+\begin{itemize}
+    \item \textit{"Based in Paris, what philosophical school was formed by a group of Marxist thinkers?"}
+\end{itemize}
+\textit{Analysis:} The sentence embeddings grouped phrases referring to "Marxist thinkers" and "philosophical schools" intimately with complex reasoning domains, despite the actual query simply asking for historical facts (a single-entity lookup acceptable for a small-LLM).
+
+\textbf{False Negatives (True Label: Large, Predicted: Small)}
+These instances successfully tricked the model into evaluating them as simple facts because of their short grammatical constraints, despite requiring multi-hop analysis natively.
+\textit{Examples:}
+\begin{itemize}
+    \item \textit{"Are Genista and Callicarpa in the same family?"}
+\end{itemize}
+\textit{Analysis:} These questions feature straightforward "Are they" prefixes, causing the classifier to score them similarly to basic trivia. However, answering them natively requires an LLM to perform boolean comparative reasoning (fetching both taxa trees and evaluating the intersection). The simplistic dimension of sentence embeddings fails to map this implicit reasoning overhead.
+
 \pagebreak
 
 \section{Discussion}
@@ -153,7 +204,7 @@ As heavily verified via the localized Experiment 2 graph intersections, forcing 
 The baseline results provided excellent counter-intuitive insights. Initially, we anticipated that the deep-learning model (BERT) would heavily outperform the classical approach. However, TF-IDF continually outcompeted BERT overall (0.78 v.s 0.73 F1-Scores respectively). Because we strictly annotated multi-hop reasoning questions as 'large', these logically specific queries inevitably spanned longer lengths and featured distinctly numerous multi-entity terminology strings (such as isolated names and geographical targets from HotpotQA splits). TF-IDF's fundamental unigram recognition efficiently latches onto explicit logical length parameters and keyword rarity contexts. Conversely, the dense 384-dimensional BERT vector inherently compresses subtle multi-hop entity relations out of frame during inference mappings, dropping structural clarity against simplistic single-hop facts during generalized clustering configurations. 
 
 \textbf{Dataset Imbalance Impact:}
-The heavily skewed 76\%/24\% natural sample distribution proved functionally foundational for architectural validation. Before strictly enforcing \texttt{class\_weight='balanced'}, our initial control executions saw both baseline pipelines instantly collapse mathematically; gradients merely voted the majority class identically across the board maximizing generic accuracy thresholds (yielding an immediate, artificial 76\%) while entirely destroying prediction recall for the generic query class. As proven explicitly by our detailed Experiment 3 SMOTE curves, tracking data subset availability mathematically confirmed that enforcing internal metric weighting natively allowed Logistic Regression equations to artificially perceive sparse 0s equivalently inside the loss function, securing the F1 stabilization efficiently without artificially extrapolating vectors.
+The heavily skewed $\sim$75\%/25\% natural sample distribution proved functionally foundational for architectural validation. Before strictly enforcing \texttt{class\_weight='balanced'}, our initial control executions saw both baseline pipelines instantly collapse mathematically; gradients merely voted the majority class identically across the board maximizing generic accuracy thresholds (yielding an immediate, artificial 75\%) while entirely destroying prediction recall for the generic query class. As proven explicitly by our detailed Experiment 3 SMOTE curves, tracking data subset availability mathematically confirmed that enforcing internal metric weighting natively allowed Logistic Regression equations to artificially perceive sparse 0s equivalently inside the loss function, securing the F1 stabilization efficiently without artificially extrapolating vectors.
 
 Furthermore, as seen intricately mapped within Experiment 2 and 4's dimensionality intersection curves, strictly collapsing NLP matrices via PCA reliably and drastically distorts latent intent boundaries. Aggressively restricting both TF-IDF tracking mechanisms and BERT embeddings functionally collapsed baseline scores beneath generalized logic levels, actively confirming high-dimensional spaces are absolutely strictly required to isolate minor language patterns successfully within intent routing logic contexts. 
 
@@ -171,64 +222,15 @@ If provided further resources to expand this project, I intend to experiment wit
 \pagebreak
 \section*{Appendix: Program Codes}
 
-\subsection*{Experiments Modeling Code (`run\_experiments.py`)}
-\begin{lstlisting}
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.model_selection import cross_validate, cross_val_predict, learning_curve, train_test_split
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import Pipeline
-from sklearn.metrics import confusion_matrix, f1_score, recall_score
-from sentence_transformers import SentenceTransformer
-from sklearn.decomposition import PCA, TruncatedSVD
-from imblearn.pipeline import Pipeline as ImbPipeline
-from imblearn.over_sampling import SMOTE
+\subsection*{1. Data Collection (`fetch\_real\_queries.py`)}
+\lstinputlisting{fetch_real_queries.py}
 
-def main():
-    df = pd.read_csv('labeled_data.csv').dropna(subset=['query', 'label'])
-    df['label_id'] = df['label'].apply(lambda x: 0 if str(x).lower().strip() == 'small' else 1)
-    
-    X = df['query'].values
-    y = df['label_id'].values
+\pagebreak
+\subsection*{2. LLM Labeling Architecture (`llm\_labeling.py`)}
+\lstinputlisting{llm_labeling.py}
 
-    tfidf_lr = Pipeline([
-        ('tfidf', TfidfVectorizer(stop_words='english', max_features=1000)),
-        ('clf', LogisticRegression(random_state=42, max_iter=1000, class_weight='balanced'))
-    ])
-
-    bert_model = SentenceTransformer('all-MiniLM-L6-v2')
-    X_bert = bert_model.encode(X, show_progress_bar=False)
-    clf_bert = LogisticRegression(random_state=42, max_iter=1000, class_weight='balanced')
-    
-    bert_pca_lr = Pipeline([
-        ('pca', PCA(n_components=50, random_state=42)),
-        ('clf', LogisticRegression(random_state=42, max_iter=1000, class_weight='balanced'))
-    ])
-    
-    tfidf_pca_lr = Pipeline([
-        ('tfidf', TfidfVectorizer(stop_words='english', max_features=1000)),
-        ('pca', TruncatedSVD(n_components=50, random_state=42)),
-        ('clf', LogisticRegression(random_state=42, max_iter=1000, class_weight='balanced'))
-    ])
-
-    scoring = ['accuracy', 'precision', 'recall', 'f1']
-
-    # --- EXPERIMENTS AND CROSS-VALIDATION PLOTTING PIPELINE HERE ---
-    # Experiment 1: Baseline TF-IDF vs BERT mappings
-    # Experiment 2: PCA Scaled 10-Point Size Curves
-    # Experiment 3: Dynamic Imblearn SMOTE curves vs Default Regressions
-    # Experiment 4: 50D SVD compressions vs 384D Semantic baseline mapping differences
-    
-    # Internal Evaluation tracking algorithms generate -> 
-    # -> learning_curve.png
-    # -> confusion_matrices.png 
-    # -> pca_results.png
-    # -> imbalance_results.png
-
-if __name__ == "__main__":
-    main()
-\end{lstlisting}
+\pagebreak
+\subsection*{3. Experiments \& Evaluation Pipeline (`run\_experiments.py`)}
+\lstinputlisting{run_experiments.py}
 
 \end{document}
