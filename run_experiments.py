@@ -148,16 +148,21 @@ def main():
     if SMOTE is None:
         print("imbalanced-learn not installed, skipping Exp 3.")
     else:
-        idx_small = np.where(y == 0)[0]
-        idx_large = np.where(y == 1)[0]
+        idx_small = np.where(y == 0)[0] # 202 samples
+        idx_large = np.where(y == 1)[0] # 598 samples
         np.random.seed(42)
-        # Assuming we have enough data (e.g. 50 out of ~400)
-        num_minority = min(50, len(idx_large))
-        idx_large_sub = np.random.choice(idx_large, size=num_minority, replace=False)
-        idx_imbalanced = np.concatenate((idx_small, idx_large_sub))
+        
+        # To fix the NaN sampling issue, we scale up the total capacity
+        # We use all 598 "large" samples as the majority class.
+        # We sample 150 "small" samples as the minority class (~80/20 split).
+        idx_small_sub = np.random.choice(idx_small, size=min(150, len(idx_small)), replace=False)
+        idx_imbalanced = np.concatenate((idx_large, idx_small_sub))
+        np.random.shuffle(idx_imbalanced)
         
         X_imb = X_bert[idx_imbalanced]
-        y_imb = y[idx_imbalanced]
+        # Invert the original arrays (1->0, 0->1) inside this experiment 
+        # so that the 'small' class (the minority) correctly registers as 'Target=1' for sklearn's F1 calc.
+        y_imb = 1 - y[idx_imbalanced]
         
         pipeline_unbal = Pipeline([('clf', LogisticRegression(random_state=42, max_iter=1000))])
         pipeline_cw = Pipeline([('clf', LogisticRegression(random_state=42, max_iter=1000, class_weight='balanced'))])

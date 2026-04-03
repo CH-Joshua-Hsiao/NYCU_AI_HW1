@@ -20,8 +20,8 @@
     frame=single
 }
 
-\title{AI Capstone Project \#1: LLM Router Dataset Report}
-\author{蕭至恆 413551034}
+\title{NYCU AI HW\#1: LLM Router Dataset Report}
+\author{Chih-Heng Hsiao 413551034}
 \date{\today}
 
 \begin{document}
@@ -57,8 +57,8 @@ The dataset consists of \textbf{800 text-based queries} paired with strictly eva
 \subsection{External Sources and Manual Collection Process}
 This dataset mimics real-world interaction logs and is composed of queries adapted from open-source domains. General knowledge and reasoning questions were pseudo-randomly sampled from real-world question-answering databases \textbf{SQuAD} and \textbf{HotpotQA}.
 
-\textit{Data Collection \& Generation Methodology:}
-To assemble this dataset while complying with the homework constraint of creating a novel classification challenge, I strictly utilized programmatic web-scraping methodologies. First, a Python script randomly isolated queries directly from the SQuAD (Stanford Question Answering Dataset) and HotpotQA sets into an unlabeled CSV pool locally. To enforce strict objective labeling, I utilized zero-shot prompting via the OpenAI GPT-4o API, systematically evaluating all 800 instances by delineating whether the question logically required relating independent entities or finding an intermediate fact before arriving at the final conclusion (`large`), or if it was a basic zero-reasoning factoid (`small`).
+\textit{Data Collection, Cleanup \& Generation Methodology:}
+To assemble this dataset while complying with the homework constraint of creating a novel classification challenge, I strictly utilized programmatic web-scraping methodologies. First, a Python script randomly isolated queries directly from the SQuAD (Stanford Question Answering Dataset) and HotpotQA sets into an unlabeled CSV pool locally. To enforce strict objective labeling and **perform necessary data cleanup**, I utilized zero-shot prompting via the OpenAI GPT-4o API. The LLM systematically evaluated the strings, filtering out structurally broken or unanswerable queries (dropping nulls and invalid formats). This automated cleanup ensured the 800 final instances were pristine, delineating whether the question logically required relating independent entities or finding an intermediate fact before arriving at the final conclusion (`large`), or if it was a basic zero-reasoning factoid (`small`).
 
 \subsection{Dataset Characteristics \& Constraints}
 \begin{itemize}
@@ -163,8 +163,13 @@ Given our dataset distribution ($\sim$75\% large / $\sim$25\% small), we built r
 \hline
 Train\_Size\_Pct & No Resampling\_F1 & Class Weights\_F1 & SMOTE\_F1 \\
 \hline
-0.9000 & 0.0000 & 0.3129 & 0.3117 \\
-1.0000 & 0.0000 & 0.3716 & 0.3311 \\
+0.4000 & 0.0000 & 0.3104 & 0.2794 \\
+0.5000 & 0.0000 & 0.3244 & 0.2998 \\
+0.6000 & 0.0000 & 0.3238 & 0.3355 \\
+0.7000 & 0.0000 & 0.3496 & 0.3382 \\
+0.8000 & 0.0129 & 0.3546 & 0.3307 \\
+0.9000 & 0.0383 & 0.3665 & 0.3374 \\
+1.0000 & 0.0493 & 0.4025 & 0.3932 \\
 \hline
 \end{tabular}
 \end{table}
